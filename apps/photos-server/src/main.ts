@@ -1,5 +1,7 @@
 import * as express from 'express';
-import { PhotoState } from './app/photo/photo.model';
+import * as cors from 'cors';
+import { Photo, PhotoState } from './app/photo/photo.model';
+import { environment } from './environments/environment';
 
 let state: PhotoState = {
   ['2d335401-d65e-4059-b8f0-a4816c82086f']: {
@@ -18,9 +20,16 @@ let state: PhotoState = {
   },
 };
 
+const stateToArray = (state: PhotoState): Photo[] =>
+  Object.keys(state).map((key) => state[key]);
+
 const app = express();
 
-app.param('photoId', function (req, res, next, val) {
+if (!environment.production) {
+  app.use(cors());
+}
+
+app.param('photoId', function (req, res, next) {
   const id = req.params.photoId;
   if (state[id]) {
     next();
@@ -34,33 +43,33 @@ app.get('/api', (req, res) => {
 });
 
 app.get('/api/photos', (req, res) => {
-  res.send(state);
+  res.send(stateToArray(state));
 });
 
-app.get('/api/photos/:photoId/like', (req, res) => {
+app.put('/api/photos/:photoId/like', (req, res) => {
   const id = req.params.photoId;
-  const photo = state[id]
+  const photo = state[id];
   state = {
     ...state,
     [id]: {
       ...photo,
-      likes: photo.likes + 1
-    }
+      likes: photo.likes + 1,
+    },
   };
-  res.send(state[id])
+  res.send(state[id]);
 });
 
-app.get('/api/photos/:photoId/dislike', (req, res) => {
+app.put('/api/photos/:photoId/dislike', (req, res) => {
   const id = req.params.photoId;
-  const photo = state[id]
+  const photo = state[id];
   state = {
     ...state,
     [id]: {
       ...photo,
-      dislikes: photo.dislikes + 1
-    }
+      dislikes: photo.dislikes + 1,
+    },
   };
-  res.send(state[id])
+  res.send(state[id]);
 });
 
 const port = process.env.port || 3333;
